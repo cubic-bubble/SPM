@@ -1,20 +1,20 @@
-/// <reference types="node" />
-import type { Options, Process, Metadata } from './types';
-import { EventEmitter } from 'events';
+// / <reference types="node" />
+import type { Options, Process, Metadata } from './types'
+import { EventEmitter } from 'events'
 declare class EventHanlder extends EventEmitter {
-    emit: (eventName: string | symbol, ...args: any[]) => boolean;
+    emit: (eventName: string | symbol, ...args: any[]) => boolean
     constructor();
 }
 export default class SPM extends EventHanlder {
-    private UAT;
-    private LPS;
-    private CPR;
-    private cache;
-    private cacheName;
-    private __PROCESS_THREADS;
-    private __ACTIVE_APPLICATIONS;
-    private __FLASH_APPLICATIONS;
-    private __MIMETYPE_SUPPORT;
+    private UAT
+    private LPS
+    private CPR
+    private cache
+    private cacheName
+    private __PROCESS_THREADS
+    private __ACTIVE_APPLICATIONS
+    private __FLASH_APPLICATIONS
+    private __MIMETYPE_SUPPORT
     /**
      * Initialize process manager state
      * variables, cache, fetch & load installed
@@ -36,12 +36,12 @@ export default class SPM extends EventHanlder {
      * Return all existing process threads
      * state details
      */
-    threads(): unknown[];
+    threads(): Process[];
     /**
      * Return all loaded process theads
      * state details
      */
-    loaded(): unknown[];
+    loaded(): Process[];
     /**
      * Return a list of process theads
      * state details by their current status
@@ -49,7 +49,7 @@ export default class SPM extends EventHanlder {
      * @param {String} status   Process status: `LATENT`, `ACTIVE`, `STALLED`
      *
      */
-    filter(status: string): unknown[];
+    filter(status: string): Process[];
     /**
      * Check whether a given process thread
      * exists
@@ -115,7 +115,7 @@ export default class SPM extends EventHanlder {
      * @param {Object} argv   Input argument variables to run the process
      *
      */
-    open(type: string, argv?: {}): boolean;
+    open(type: string): boolean;
     /**
      * Spawn a new process
      *
@@ -123,7 +123,7 @@ export default class SPM extends EventHanlder {
      * @param {Object} argv   Input argument variables to run the process
      *
      */
-    spawn(sid: string, argv?: {}): void;
+    spawn(sid: string): void;
     /**
      * Refresh a running process in-memory
      * metadata with LPS metadata
@@ -146,7 +146,7 @@ export default class SPM extends EventHanlder {
      * @param {Object} argv    Input argument variables to run the app
      *
      */
-    run(name: string, argv?: {}): false | {
+    run(name: string): false | {
         quit: () => boolean;
         refresh: () => Promise<void>;
     };
@@ -158,4 +158,4 @@ export default class SPM extends EventHanlder {
      */
     quit(name: string): boolean;
 }
-export {};
+export {}

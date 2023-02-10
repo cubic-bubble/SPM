@@ -4,6 +4,7 @@ import type {
   Process,
   Metadata,
   AssetsManifest,
+  MimeSupport,
   CPROptions
 } from './types'
 import { EventEmitter } from 'events'
@@ -15,7 +16,9 @@ import { Client } from '@cubic-bubble/lps'
  *
  */
 function isValidMetadata( metadata: Metadata ){
-  return true
+  return !!metadata.nsi
+          && !!metadata.name
+          && !!metadata.namespace
 }
 
 /**
@@ -23,7 +26,7 @@ function isValidMetadata( metadata: Metadata ){
  *
  */
 function isValidProcess( process: Process ){
-  return true
+  return !!process.metadata
 }
 
 function isEmpty( entry: any ){
@@ -115,7 +118,7 @@ class CPRConnect {
 
 const emiter = new EventEmitter
 class EventHanlder extends EventEmitter {
-  // public on = emiter.on
+  // Public on = emiter.on
   public emit = emiter.emit
   constructor(){
     super()
@@ -131,10 +134,10 @@ export default class SPM extends EventHanlder {
   private cache: typeof CacheStorage
   private cacheName: string
 
-  private __PROCESS_THREADS: any
-  private __ACTIVE_APPLICATIONS: any
-  private __FLASH_APPLICATIONS: any
-  private __MIMETYPE_SUPPORT: any
+  private __PROCESS_THREADS: { [index: string]: Process }
+  private __ACTIVE_APPLICATIONS: { [index: string]: string }
+  private __FLASH_APPLICATIONS: { [index: string]: string }
+  private __MIMETYPE_SUPPORT: { [index: string]: MimeSupport[] }
 
   /**
    * Initialize process manager state
@@ -240,10 +243,7 @@ export default class SPM extends EventHanlder {
    *
    */
   requirePermission({ resource }: Metadata ){
-    return resource
-            && resource.permissions
-            && resource.permissions.scope
-            && resource.permissions.scope.length
+    return resource?.permissions?.scope?.length
             && resource.permissions.scope.filter( each => {
               return typeof each == 'string'
                       || ( typeof each == 'object' && each.type && !each.access )
@@ -448,7 +448,7 @@ export default class SPM extends EventHanlder {
     this.emit('notification-clear', sid )
 
     // Default workspace view mode
-    let WSMode = false
+    let WSMode = ''
 
     // Activate a new process
     if( this.__PROCESS_THREADS[ sid ].status !== 'ACTIVE' ) {
@@ -456,10 +456,10 @@ export default class SPM extends EventHanlder {
 
       // Process has a default workspace view mode
       const { runscript } = this.__PROCESS_THREADS[ sid ].metadata
-      WSMode = runscript
-                && ( runscript.workspace
-                    || ( runscript[ this.UAT ] && runscript[ this.UAT ].workspace )
-                    || ( runscript['*'] && runscript['*'].workspace ) )
+      WSMode = ( runscript
+                  && ( runscript?.workspace
+                      || runscript[ this.UAT ]?.workspace
+                      || runscript['*']?.workspace ) ) as string
     }
     // No re-indexing required when 0 or only 1 process thread is active
     else if( hightIndex <= 1 ) {

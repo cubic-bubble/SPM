@@ -29,11 +29,12 @@ export type Metadata = {
   configs?: { [index: string]: any }
 }
 export type Process = {
-  loaded: boolean,
-  status: 'LATENT' | 'ACTIVE' | 'INACTIVE',
-  metadata: Metadata,
-  argv: { [index: string]: any },
-  stats: { [index: string]: any },
+  index?: number
+  loaded: boolean
+  status: 'LATENT' | 'ACTIVE' | 'INACTIVE'
+  metadata: Metadata
+  argv: { [index: string]: any }
+  stats: { [index: string]: any }
 }
 export type CPROptions = {
   hostname: string
@@ -54,4 +55,10 @@ export type AssetsManifest = {
   js?: string[]
   css?: string[]
   media?: string[]
+}
+export type MimeSupport = {
+  defaultHandler?: string,
+  sid: string,
+  name: string,
+  type: 'editor' | 'reader'
 }

@@ -73,14 +73,16 @@ var lps_1 = require("@cubic-bubble/lps");
  *
  */
 function isValidMetadata(metadata) {
-    return true;
+    return !!metadata.nsi
+        && !!metadata.name
+        && !!metadata.namespace;
 }
 /**
  * Check process data schema
  *
  */
 function isValidProcess(process) {
-    return true;
+    return !!process.metadata;
 }
 function isEmpty(entry) {
     // Test empty array or object
@@ -93,6 +95,8 @@ function isEmpty(entry) {
 var CPRConnect = /** @class */ (function () {
     function CPRConnect(options) {
         this.version = 1;
+        this.scope = [];
+        this.manifest = {};
         if (options.version)
             this.version = options.version;
         if (options.hostname)
@@ -101,8 +105,10 @@ var CPRConnect = /** @class */ (function () {
             this.accessToken = options.accessToken;
         if (options.anchorToken)
             this.anchorToken = options.anchorToken;
-        this.scope = [];
-        this.manifest = {};
+        /*
+         * This.scope = []
+         * this.manifest = {}
+         */
         this.baseURL = "".concat(this.hostname, "/v").concat(this.version);
     }
     CPRConnect.prototype.connect = function () {
@@ -184,7 +190,7 @@ var EventHanlder = /** @class */ (function (_super) {
     __extends(EventHanlder, _super);
     function EventHanlder() {
         var _this = _super.call(this) || this;
-        // public on = emiter.on
+        // Public on = emiter.on
         _this.emit = emiter.emit;
         return _this;
     }
@@ -205,6 +211,10 @@ var SPM = /** @class */ (function (_super) {
      */
     function SPM(options) {
         var _this = _super.call(this) || this;
+        _this.__PROCESS_THREADS = {};
+        _this.__ACTIVE_APPLICATIONS = {};
+        _this.__FLASH_APPLICATIONS = {};
+        _this.__MIMETYPE_SUPPORT = {};
         if (!options.CPR)
             throw new Error('Undefined <CPR> configuration');
         if (!options.UAT)
@@ -217,10 +227,8 @@ var SPM = /** @class */ (function (_super) {
         // In-browser environment cache
         _this.cache = new all_localstorage_1.default({ prefix: 'cpm-cache', encrypt: true });
         _this.cacheName = "".concat(_this.UAT.toLowerCase(), "-process");
-        _this.__PROCESS_THREADS = _this.cache.get(_this.cacheName) || {};
-        _this.__ACTIVE_APPLICATIONS = {};
-        _this.__FLASH_APPLICATIONS = _this.cache.get("".concat(_this.cacheName, "-temp")) || {};
-        _this.__MIMETYPE_SUPPORT = {};
+        _this.__PROCESS_THREADS = _this.cache.get(_this.cacheName);
+        _this.__FLASH_APPLICATIONS = _this.cache.get("".concat(_this.cacheName, "-temp"));
         return _this;
     }
     /**
@@ -305,11 +313,9 @@ var SPM = /** @class */ (function (_super) {
      *
      */
     SPM.prototype.requirePermission = function (_a) {
+        var _b, _c;
         var resource = _a.resource;
-        return resource
-            && resource.permissions
-            && resource.permissions.scope
-            && resource.permissions.scope.length
+        return ((_c = (_b = resource === null || resource === void 0 ? void 0 : resource.permissions) === null || _b === void 0 ? void 0 : _b.scope) === null || _c === void 0 ? void 0 : _c.length)
             && resource.permissions.scope.filter(function (each) {
                 return typeof each == 'string'
                     || (typeof each == 'object' && each.type && !each.access);
@@ -460,19 +466,18 @@ var SPM = /** @class */ (function (_super) {
      * @param {Object} argv   Input argument variables to run the process
      *
      */
-    SPM.prototype.open = function (type, argv) {
-        if (argv === void 0) { argv = {}; }
+    SPM.prototype.open = function (type) {
         if (!Array.isArray(this.__MIMETYPE_SUPPORT[type])) {
             console.log('[EXT]: No process to read this datatype found');
             return false;
         }
         for (var o = 0; o < this.__MIMETYPE_SUPPORT[type].length; o++)
             if (this.__MIMETYPE_SUPPORT[type][o].defaultHandler) {
-                this.run(this.__MIMETYPE_SUPPORT[type][o].name, argv);
+                //this.run( this.__MIMETYPE_SUPPORT[ type ][ o ].name, argv )
                 return true;
             }
         // Select first handler by default
-        this.run(this.__MIMETYPE_SUPPORT[type][0].name, argv);
+        //this.run( this.__MIMETYPE_SUPPORT[ type ][0].name, argv )
         return true;
     };
     /**
@@ -482,8 +487,8 @@ var SPM = /** @class */ (function (_super) {
      * @param {Object} argv   Input argument variables to run the process
      *
      */
-    SPM.prototype.spawn = function (sid, argv) {
-        if (argv === void 0) { argv = {}; }
+    SPM.prototype.spawn = function (sid) {
+        var _a, _b;
         if (!this.__PROCESS_THREADS[sid])
             throw new Error("Process <".concat(sid, "> not found"));
         var ActiveProcesses = this.filter('ACTIVE'), hightIndex = ActiveProcesses.length > 1 ? Math.max.apply(Math, (ActiveProcesses.map(function (_a) {
@@ -493,25 +498,25 @@ var SPM = /** @class */ (function (_super) {
         // Clear notification badge event
         this.emit('notification-clear', sid);
         // Default workspace view mode
-        var WSMode = false;
+        var WSMode = '';
         // Activate a new process
         if (this.__PROCESS_THREADS[sid].status !== 'ACTIVE') {
-            this.__PROCESS_THREADS[sid] = __assign(__assign({}, this.__PROCESS_THREADS[sid]), { status: 'ACTIVE', argv: argv });
+            // this.__PROCESS_THREADS[ sid ] = { ...this.__PROCESS_THREADS[ sid ], status: 'ACTIVE', argv }
             // Process has a default workspace view mode
             var runscript = this.__PROCESS_THREADS[sid].metadata.runscript;
-            WSMode = runscript
-                && (runscript.workspace
-                    || (runscript[this.UAT] && runscript[this.UAT].workspace)
-                    || (runscript['*'] && runscript['*'].workspace));
+            WSMode = (runscript
+                && ((runscript === null || runscript === void 0 ? void 0 : runscript.workspace)
+                    || ((_a = runscript[this.UAT]) === null || _a === void 0 ? void 0 : _a.workspace)
+                    || ((_b = runscript['*']) === null || _b === void 0 ? void 0 : _b.workspace)));
         }
         // No re-indexing required when 0 or only 1 process thread is active
         else if (hightIndex <= 1) {
-            // Update the `argv` of this active process
-            if (argv) {
-                this.__PROCESS_THREADS[sid].argv = argv;
-                this.cache.set(this.cacheName, this.__PROCESS_THREADS);
-                this.emit('refresh', { loaded: this.loaded(), actives: this.filter('ACTIVE') });
-            }
+            // // Update the `argv` of this active process
+            // if( argv ) {
+            //   this.__PROCESS_THREADS[ sid ].argv = argv
+            //   this.cache.set( this.cacheName, this.__PROCESS_THREADS )
+            //   this.emit( 'refresh', { loaded: this.loaded(), actives: this.filter('ACTIVE') })
+            // }
             return;
         }
         this.__PROCESS_THREADS[sid].index = hightIndex + 1; // Position targeted view block to the top
@@ -541,8 +546,8 @@ var SPM = /** @class */ (function (_super) {
                         // Replace process metadata
                         this.__PROCESS_THREADS[sid].metadata = metadata;
                         // Re-run the process with current argv if active
-                        this.__PROCESS_THREADS[sid].status == 'ACTIVE'
-                            && this.spawn(sid, this.__PROCESS_THREADS[sid].argv);
+                        // this.__PROCESS_THREADS[ sid ].status == 'ACTIVE'
+                        // && this.spawn( sid, this.__PROCESS_THREADS[ sid ].argv )
                         this.emit('refresh', { loaded: this.loaded(), actives: this.filter('ACTIVE') });
                         return [3 /*break*/, 3];
                     case 2:
@@ -585,16 +590,15 @@ var SPM = /** @class */ (function (_super) {
      * @param {Object} argv    Input argument variables to run the app
      *
      */
-    SPM.prototype.run = function (name, argv) {
+    SPM.prototype.run = function (name) {
         var _this = this;
-        if (argv === void 0) { argv = {}; }
         if (!this.__ACTIVE_APPLICATIONS[name]) {
             this.emit('alert', 'APPLICATION_NOT_FOUND', name);
             return false;
         }
         var sid = this.__ACTIVE_APPLICATIONS[name];
         // Start new process
-        this.spawn(sid, argv);
+        // this.spawn( sid, argv )
         // Temporary load application to loaded list: Get removed when quit
         if (!this.__PROCESS_THREADS[sid].loaded) {
             this.__PROCESS_THREADS[sid].loaded = true;
